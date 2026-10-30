@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -14,7 +14,13 @@ router = APIRouter()
 def _parse_exclude_ids(exclude_ids: str | None) -> list[int]:
     if not exclude_ids:
         return []
-    return [int(part) for part in exclude_ids.split(",") if part.strip()]
+    try:
+        return [int(part) for part in exclude_ids.split(",") if part.strip()]
+    except ValueError as error:
+        raise HTTPException(
+            status_code=422,
+            detail="exclude_ids must be a comma-separated list of integers",
+        ) from error
 
 
 def _to_feed_item(recipe: Recipe) -> FeedItem:

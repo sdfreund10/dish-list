@@ -188,3 +188,8 @@ def test_feed_item_includes_card_fields() -> None:
 def test_feed_rejects_limit_above_max() -> None:
     response = client.get("/feed", params={"limit": 51})
     assert response.status_code == 422
+
+
+def test_feed_rejects_malformed_exclude_ids() -> None:
+    response = client.get("/feed", params={"exclude_ids": "1,nope"})
+    assert response.status_code == 422

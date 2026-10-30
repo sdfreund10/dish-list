@@ -1,7 +1,7 @@
-from dataclasses import dataclass
+import random
 
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import delete
 
 from app.db import SessionLocal
 from app.main import app
@@ -13,10 +13,15 @@ client = TestClient(app)
 SOURCE_PREFIX = "feed-test-"
 
 
-@dataclass
-class FakeRecipe:
-    id: int
-    categories: list[str] | None
+def _unsaved_recipe(recipe_id: int, categories: list[str]) -> Recipe:
+    return Recipe(
+        id=recipe_id,
+        source_id=f"order-{recipe_id}",
+        name=f"Recipe {recipe_id}",
+        url=f"https://example.com/{recipe_id}",
+        categories=categories,
+        source_data={"id": f"order-{recipe_id}"},
+    )
 
 
 def test_distinctive_categories_intersects_allowlist() -> None:
@@ -31,36 +36,48 @@ def test_distinctive_categories_intersects_allowlist() -> None:
 def test_order_feed_avoids_recent_distinctive_category_when_alternative_exists() -> (
     None
 ):
-    # Fixed shuffle order: Seafood, Seafood, Pastas, Poultry, Curry, Salad.
-    # After first Seafood, skip the second Seafood while Pastas is available.
     recipes = [
-        FakeRecipe(1, ["Seafood", "Dinner"]),
-        FakeRecipe(2, ["Seafood", "Lunch"]),
-        FakeRecipe(3, ["Pastas", "Dinner"]),
-        FakeRecipe(4, ["Poultry", "Dinner"]),
-        FakeRecipe(5, ["Curry", "Dinner"]),
-        FakeRecipe(6, ["Salad", "Lunch"]),
+        _unsaved_recipe(1, ["Seafood", "Dinner"]),
+        _unsaved_recipe(2, ["Seafood", "Lunch"]),
+        _unsaved_recipe(3, ["Pastas", "Dinner"]),
+        _unsaved_recipe(4, ["Poultry", "Dinner"]),
+        _unsaved_recipe(5, ["Curry", "Dinner"]),
+        _unsaved_recipe(6, ["Salad", "Lunch"]),
     ]
 
-    ordered = order_feed(recipes, rng=_FixedShuffle())
+    ordered = order_feed(recipes, rng=random.Random(0))
 
-    assert [recipe.id for recipe in ordered] == [1, 3, 4, 5, 6, 2]
-    assert ordered[0].categories == ["Seafood", "Dinner"]
-    # Second pick skips the other Seafood (still in window) for Pastas.
-    assert "Seafood" not in (ordered[1].categories or [])
+    # With two Seafood recipes and four alternatives, a correct ordering picks
+    # a non-Seafood recipe immediately after the first Seafood.
+    seafood_indexes = [
+        index
+        for index, recipe in enumerate(ordered)
+        if "Seafood" in distinctive_categories(recipe.categories)
+    ]
+    assert len(seafood_indexes) == 2
+    first_seafood = seafood_indexes[0]
+    assert first_seafood < len(ordered) - 1
+    assert "Seafood" not in distinctive_categories(
+        ordered[first_seafood + 1].categories
+    )
+
+    for index, recipe in enumerate(ordered):
+        recent: set[str] = set()
+        for previous in ordered[max(0, index - 5) : index]:
+            recent |= distinctive_categories(previous.categories)
+        if distinctive_categories(recipe.categories).isdisjoint(recent):
+            continue
+        # A collision is only allowed when every remaining recipe also collides.
+        assert all(
+            not distinctive_categories(candidate.categories).isdisjoint(recent)
+            for candidate in ordered[index:]
+        )
 
 
-class _FixedShuffle:
-    """Deterministic stand-in for random.Random.shuffle — leave list as-is."""
-
-    def shuffle(self, x: list[FakeRecipe]) -> None:
-        return None
-
-
-def _delete_feed_test_recipes() -> None:
+def _clear_recipes() -> None:
     db = SessionLocal()
     try:
-        db.execute(delete(Recipe).where(Recipe.source_id.startswith(SOURCE_PREFIX)))
+        db.execute(delete(Recipe))
         db.commit()
     finally:
         db.close()
@@ -105,20 +122,13 @@ def _seed_feed_recipes(count: int) -> list[Recipe]:
 
 
 def test_feed_traversal_returns_each_recipe_once() -> None:
-    _delete_feed_test_recipes()
+    _clear_recipes()
     try:
         seeded = _seed_feed_recipes(23)
         our_ids = {recipe.id for recipe in seeded}
 
-        db = SessionLocal()
-        try:
-            all_ids = set(db.scalars(select(Recipe.id)).all())
-        finally:
-            db.close()
-        foreign_ids = all_ids - our_ids
-
         seen: list[int] = []
-        exclude = list(foreign_ids)
+        exclude: list[int] = []
         while True:
             params: dict[str, str | int] = {"limit": 7}
             if exclude:
@@ -143,30 +153,16 @@ def test_feed_traversal_returns_each_recipe_once() -> None:
 
         assert sorted(seen) == sorted(our_ids)
     finally:
-        _delete_feed_test_recipes()
+        _clear_recipes()
 
 
 def test_feed_item_includes_card_fields() -> None:
-    _delete_feed_test_recipes()
+    _clear_recipes()
     try:
         seeded = _seed_feed_recipes(1)
         recipe = seeded[0]
 
-        db = SessionLocal()
-        try:
-            foreign = [
-                recipe_id
-                for recipe_id in db.scalars(select(Recipe.id)).all()
-                if recipe_id != recipe.id
-            ]
-        finally:
-            db.close()
-
-        params: dict[str, str | int] = {"limit": 1}
-        if foreign:
-            params["exclude_ids"] = ",".join(str(recipe_id) for recipe_id in foreign)
-
-        response = client.get("/feed", params=params)
+        response = client.get("/feed", params={"limit": 1})
         assert response.status_code == 200
         body = response.json()
         assert body["remaining"] == 0
@@ -182,7 +178,7 @@ def test_feed_item_includes_card_fields() -> None:
             "keywords": recipe.keywords,
         }
     finally:
-        _delete_feed_test_recipes()
+        _clear_recipes()
 
 
 def test_feed_rejects_limit_above_max() -> None:

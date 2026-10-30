@@ -89,10 +89,21 @@ npm install
 npm run dev
 ```
 
-Lint with Standard Style (`ts-standard`):
+Lint, test, and production build (same checks as CI):
 
 ```bash
 npm run lint
+npm test
+npm run build
 ```
 
 The Vite app listens on `http://localhost:5173` and uses `VITE_API_BASE_URL` (default `http://localhost:8000`) to reach the API.
+
+## Continuous integration
+
+GitHub Actions runs on pushes to `main` and on pull requests:
+
+- **Backend** (`.github/workflows/backend.yml`): `ruff check`, `ruff format --check`, and `pytest`
+- **Frontend** (`.github/workflows/frontend.yml`): `npm run lint`, `npm test`, and `npm run build`
+
+Current backend tests do not require Postgres. When database-dependent tests are added, CI should provide an isolated test database.

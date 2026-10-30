@@ -225,3 +225,7 @@ frontend/dist/
 
 # Local agent memory (committed template: .agents/Memories.example.md)
 .agents/Memories.md
+
+# Local recipe corpus (not committed; supply for import)
+data/recipes.json
+

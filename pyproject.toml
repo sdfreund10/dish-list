@@ -16,6 +16,9 @@ dependencies = [
     "uvicorn[standard]",
 ]
 
+[project.scripts]
+import-recipes = "app.import_recipes:cli"
+
 [dependency-groups]
 dev = [
     "httpx",

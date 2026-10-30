@@ -118,5 +118,3 @@ GitHub Actions runs on pushes to `main` and on pull requests:
 
 - **Backend** (`.github/workflows/backend.yml`): `ruff check`, `ruff format --check`, migrate, and `pytest` against `dish_list_test`
 - **Frontend** (`.github/workflows/frontend.yml`): `npm run lint`, `npm test`, and `npm run build`
-
-Current backend tests do not require Postgres. When database-dependent tests are added, CI should provide an isolated test database.

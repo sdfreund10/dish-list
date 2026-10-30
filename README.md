@@ -66,6 +66,15 @@ uv run ruff check .
 uv run ruff format --check .
 ```
 
+### Recipe import
+
+Place `recipes.json` at `data/recipes.json` locally (gitignored) or pass another path. Re-runs are idempotent by `source_id` and print inserted/updated/skipped/failed counts:
+
+```bash
+uv run import-recipes
+uv run import-recipes path/to/recipes.json
+```
+
 ### Migrations
 
 Create a revision after changing models:

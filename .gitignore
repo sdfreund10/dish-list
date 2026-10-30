@@ -222,3 +222,6 @@ __marimo__/
 # Frontend
 node_modules/
 frontend/dist/
+
+# Local agent memory (committed template: .agents/Memories.example.md)
+.agents/Memories.md

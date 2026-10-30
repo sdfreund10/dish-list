@@ -14,6 +14,24 @@ jobs:
     name: Lint and test
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dish_list
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d dish_list"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/dish_list
+
     steps:
       - uses: actions/checkout@v4
 
@@ -33,6 +51,9 @@ jobs:
 
       - name: Ruff format
         run: uv run ruff format --check .
+
+      - name: Apply migrations
+        run: uv run alembic upgrade head
 
       - name: Pytest
         run: uv run pytest

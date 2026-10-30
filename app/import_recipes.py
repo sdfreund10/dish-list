@@ -75,11 +75,6 @@ def import_recipes(session: Session, records: list[dict[str, Any]]) -> ImportRep
     }
 
     for index, record in enumerate(records):
-        if not isinstance(record, dict):
-            report.failed += 1
-            report.failures.append(f"record {index}: expected an object")
-            continue
-
         try:
             values = recipe_values_from_record(record)
         except ValueError as error:

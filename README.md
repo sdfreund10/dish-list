@@ -58,10 +58,12 @@ uv run uvicorn app.main:app --reload
 
 The API listens on `http://localhost:8000`. `GET /health` returns `{"status": "ok"}`.
 
-Run tests:
+Run tests and lint:
 
 ```bash
 uv run pytest
+uv run ruff check .
+uv run ruff format --check .
 ```
 
 ### Migrations
@@ -85,6 +87,12 @@ uv run alembic downgrade -1
 cd frontend
 npm install
 npm run dev
+```
+
+Lint with Standard Style (`ts-standard`):
+
+```bash
+npm run lint
 ```
 
 The Vite app listens on `http://localhost:5173` and uses `VITE_API_BASE_URL` (default `http://localhost:8000`) to reach the API.

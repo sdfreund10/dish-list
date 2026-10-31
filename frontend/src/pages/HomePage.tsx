@@ -1,12 +1,14 @@
 import type { ReactElement } from 'react'
 
 import { RecipeSwipeCard } from '../components/RecipeSwipeCard'
+import { SwipeSessionProgress } from '../components/SwipeSessionProgress'
 import { useSwipeDeck } from '../hooks/useSwipeDeck'
 
 export function HomePage (): ReactElement {
   const {
     status,
     currentRecipe,
+    engagements,
     handleLike,
     handlePass
   } = useSwipeDeck()
@@ -36,6 +38,10 @@ export function HomePage (): ReactElement {
         <p className='home-status' role='status'>
           You have seen all available recipes for now. Check back after more are added.
         </p>
+      )}
+
+      {(status === 'ready' || status === 'exhausted') && (
+        <SwipeSessionProgress engagements={engagements} />
       )}
 
       {status === 'ready' && currentRecipe != null && (

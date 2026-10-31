@@ -202,4 +202,38 @@ describe('HomePage swipe deck', () => {
       expect(screen.getByText(/seen all available recipes/i)).toBeTruthy()
     })
   })
+
+  it('updates session progress counts after Like and Pass', async () => {
+    fetchFeedMock.mockResolvedValueOnce({
+      items: [makeRecipe(1, 'First'), makeRecipe(2, 'Second')],
+      remaining: 0
+    })
+
+    render(<HomePage />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'First' })).toBeTruthy()
+    })
+
+    const progress = screen.getByLabelText('Swipe session counts')
+    expect(progress.textContent).toContain('0')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Like First' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Second' })).toBeTruthy()
+    })
+
+    expect(progress.textContent).toMatch(/Rated\s*1/)
+    expect(progress.textContent).toMatch(/Liked\s*1/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pass Second' }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/seen all available recipes/i)).toBeTruthy()
+    })
+
+    expect(progress.textContent).toMatch(/Rated\s*2/)
+    expect(progress.textContent).toMatch(/Liked\s*1/)
+  })
 })

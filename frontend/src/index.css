@@ -72,3 +72,139 @@ body {
 .api-status-error {
   background: #f6d7d7;
 }
+
+.home-status {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: #ebe4d8;
+  font-size: 0.95rem;
+}
+
+.home-status-error {
+  background: #f6d7d7;
+}
+
+.recipe-swipe-card {
+  margin-top: 1.5rem;
+  max-width: 24rem;
+  border: 1px solid #e4ddd2;
+  border-radius: 1rem;
+  background: #fffdf9;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgb(26 26 26 / 6%);
+  display: flex;
+  flex-direction: column;
+}
+
+.recipe-swipe-card__media {
+  aspect-ratio: 4 / 3;
+  background: #ebe4d8;
+}
+
+.recipe-swipe-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.recipe-swipe-card__image-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b6358;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.recipe-swipe-card__body {
+  padding: 1rem 1.125rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.recipe-swipe-card__title {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+
+.recipe-swipe-card__description {
+  margin: 0;
+  color: #3d3830;
+  font-size: 0.95rem;
+}
+
+.recipe-swipe-card__time {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b6358;
+}
+
+.recipe-swipe-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recipe-swipe-card__tag {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #f0e9de;
+  font-size: 0.78rem;
+  color: #4a433a;
+}
+
+.recipe-swipe-card__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem 1.125rem 1.125rem;
+}
+
+.recipe-swipe-card__action {
+  min-height: 2.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.recipe-swipe-card__action--pass {
+  background: #f7f4ef;
+  border-color: #d9d0c4;
+  color: #3d3830;
+}
+
+.recipe-swipe-card__action--pass:hover {
+  background: #ebe4d8;
+}
+
+.recipe-swipe-card__action--like {
+  background: #2f6b4f;
+  color: #fffdf9;
+}
+
+.recipe-swipe-card__action--like:hover {
+  background: #265a42;
+}
+
+.recipe-swipe-card__action:focus-visible {
+  outline: 2px solid #2f6b4f;
+  outline-offset: 2px;
+}
+
+@media (min-width: 480px) {
+  .recipe-swipe-card {
+    max-width: 26rem;
+  }
+}

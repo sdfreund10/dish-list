@@ -30,6 +30,8 @@ def _to_feed_item(recipe: Recipe) -> FeedItem:
         description=recipe.description,
         image=recipe.image,
         total_min=recipe.total_min,
+        rating=recipe.rating,
+        rating_count=recipe.rating_count,
         categories=list(recipe.categories or []),
         keywords=list(recipe.keywords or []),
     )

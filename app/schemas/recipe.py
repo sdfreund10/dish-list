@@ -7,6 +7,8 @@ class FeedItem(BaseModel):
     description: str | None
     image: str | None
     total_min: int | None
+    rating: int | None
+    rating_count: int | None
     categories: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
 

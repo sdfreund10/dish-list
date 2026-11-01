@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     environment: Environment = "development"
     database_url: str = ""
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5173,http://localhost:5174"
 
     @model_validator(mode="after")
     def resolve_database_url(self) -> Self:

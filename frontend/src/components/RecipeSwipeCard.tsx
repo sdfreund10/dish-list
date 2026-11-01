@@ -1,5 +1,6 @@
 import { useState, type ReactElement } from 'react'
 
+import { useRecipeCardSwipe } from '../hooks/useRecipeCardSwipe'
 import type { FeedItem } from '../types/feed'
 
 const MAX_TAGS = 6
@@ -35,6 +36,17 @@ export function RecipeSwipeCard ({
   onLike,
   onPass
 }: RecipeSwipeCardProps): ReactElement {
+  const {
+    showLikeHint,
+    showPassHint,
+    hintOpacity,
+    swipeSurfaceStyle,
+    swipeSurfaceClassName,
+    onSwipePointerDown,
+    onSwipePointerMove,
+    onSwipePointerUp,
+    onSwipePointerCancel
+  } = useRecipeCardSwipe(recipe.id, onLike, onPass)
   const [imageFailed, setImageFailed] = useState(false)
   const hasImageUrl =
     recipe.image != null && recipe.image.trim() !== ''
@@ -47,48 +59,79 @@ export function RecipeSwipeCard ({
 
   return (
     <article className='recipe-swipe-card' aria-labelledby={`recipe-title-${recipe.id}`}>
-      <div className='recipe-swipe-card__media'>
-        {showImage
-          ? (
-            <img
-              className='recipe-swipe-card__image'
-              src={recipe.image ?? undefined}
-              alt=''
-              loading='lazy'
-              onError={() => {
-                setImageFailed(true)
-              }}
-            />
-            )
-          : (
-            <div className='recipe-swipe-card__image-fallback' aria-hidden='true'>
-              <span>No photo</span>
-            </div>
+      <div
+        className={swipeSurfaceClassName}
+        style={swipeSurfaceStyle}
+        onPointerDown={onSwipePointerDown}
+        onPointerMove={onSwipePointerMove}
+        onPointerUp={onSwipePointerUp}
+        onPointerCancel={onSwipePointerCancel}
+      >
+        {(showLikeHint || showPassHint) && (
+          <div className='recipe-swipe-card__hints' aria-hidden='true'>
+            {showLikeHint && (
+              <span
+                className='recipe-swipe-card__hint recipe-swipe-card__hint--like'
+                style={{ opacity: hintOpacity }}
+              >
+                Like
+              </span>
             )}
-      </div>
-
-      <div className='recipe-swipe-card__body'>
-        <h2 id={`recipe-title-${recipe.id}`} className='recipe-swipe-card__title'>
-          {recipe.name}
-        </h2>
-
-        {recipe.description != null && recipe.description.trim() !== '' && (
-          <p className='recipe-swipe-card__description'>{recipe.description}</p>
+            {showPassHint && (
+              <span
+                className='recipe-swipe-card__hint recipe-swipe-card__hint--pass'
+                style={{ opacity: hintOpacity }}
+              >
+                Pass
+              </span>
+            )}
+          </div>
         )}
 
-        {timeLabel != null && (
-          <p className='recipe-swipe-card__time'>{timeLabel}</p>
-        )}
+        <div className='recipe-swipe-card__media'>
+          {showImage
+            ? (
+              <img
+                className='recipe-swipe-card__image'
+                src={recipe.image ?? undefined}
+                alt=''
+                loading='lazy'
+                draggable={false}
+                onError={() => {
+                  setImageFailed(true)
+                }}
+              />
+              )
+            : (
+              <div className='recipe-swipe-card__image-fallback' aria-hidden='true'>
+                <span>No photo</span>
+              </div>
+              )}
+        </div>
 
-        {tags.length > 0 && (
-          <ul className='recipe-swipe-card__tags'>
-            {tags.map((tag) => (
-              <li key={tag} className='recipe-swipe-card__tag'>
-                {tag}
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className='recipe-swipe-card__body'>
+          <h2 id={`recipe-title-${recipe.id}`} className='recipe-swipe-card__title'>
+            {recipe.name}
+          </h2>
+
+          {recipe.description != null && recipe.description.trim() !== '' && (
+            <p className='recipe-swipe-card__description'>{recipe.description}</p>
+          )}
+
+          {timeLabel != null && (
+            <p className='recipe-swipe-card__time'>{timeLabel}</p>
+          )}
+
+          {tags.length > 0 && (
+            <ul className='recipe-swipe-card__tags'>
+              {tags.map((tag) => (
+                <li key={tag} className='recipe-swipe-card__tag'>
+                  {tag}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className='recipe-swipe-card__actions'>

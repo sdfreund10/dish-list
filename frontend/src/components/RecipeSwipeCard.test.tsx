@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { SWIPE_COMMIT_THRESHOLD_PX } from './swipeConstants'
 import { RecipeSwipeCard } from './RecipeSwipeCard'
 import type { FeedItem } from '../types/feed'
 
@@ -26,9 +27,55 @@ const sparseRecipe: FeedItem = {
   keywords: []
 }
 
+function mockMatchMedia (matches: boolean): void {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === '(prefers-reduced-motion: reduce)' ? matches : false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn()
+  }))
+}
+
+function dragSwipeSurface (
+  surface: Element,
+  deltaX: number
+): void {
+  const startX = 200
+  const startY = 200
+
+  fireEvent.pointerDown(surface, {
+    pointerId: 1,
+    pointerType: 'mouse',
+    button: 0,
+    clientX: startX,
+    clientY: startY
+  })
+  fireEvent.pointerMove(surface, {
+    pointerId: 1,
+    pointerType: 'mouse',
+    clientX: startX + deltaX,
+    clientY: startY
+  })
+  fireEvent.pointerUp(surface, {
+    pointerId: 1,
+    pointerType: 'mouse',
+    clientX: startX + deltaX,
+    clientY: startY
+  })
+}
+
 describe('RecipeSwipeCard', () => {
   afterEach(() => {
     cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  beforeEach(() => {
+    mockMatchMedia(false)
   })
 
   it('renders full recipe metadata', () => {
@@ -72,6 +119,64 @@ describe('RecipeSwipeCard', () => {
 
     expect(onLike).toHaveBeenCalledTimes(1)
     expect(onPass).toHaveBeenCalledTimes(1)
+  })
+
+  it('commits Like when dragged past the swipe threshold to the right', () => {
+    const onLike = vi.fn()
+    const onPass = vi.fn()
+    const { container } = render(
+      <RecipeSwipeCard recipe={fullRecipe} onLike={onLike} onPass={onPass} />
+    )
+
+    const surface = container.querySelector('.recipe-swipe-card__swipe-surface')
+    expect(surface).toBeTruthy()
+    dragSwipeSurface(surface as Element, SWIPE_COMMIT_THRESHOLD_PX + 8)
+
+    expect(onLike).toHaveBeenCalledTimes(1)
+    expect(onPass).not.toHaveBeenCalled()
+  })
+
+  it('commits Pass when dragged past the swipe threshold to the left', () => {
+    const onLike = vi.fn()
+    const onPass = vi.fn()
+    const { container } = render(
+      <RecipeSwipeCard recipe={fullRecipe} onLike={onLike} onPass={onPass} />
+    )
+
+    const surface = container.querySelector('.recipe-swipe-card__swipe-surface')
+    dragSwipeSurface(surface as Element, -(SWIPE_COMMIT_THRESHOLD_PX + 8))
+
+    expect(onPass).toHaveBeenCalledTimes(1)
+    expect(onLike).not.toHaveBeenCalled()
+  })
+
+  it('does not commit when drag stays below the swipe threshold', () => {
+    const onLike = vi.fn()
+    const onPass = vi.fn()
+    const { container } = render(
+      <RecipeSwipeCard recipe={fullRecipe} onLike={onLike} onPass={onPass} />
+    )
+
+    const surface = container.querySelector('.recipe-swipe-card__swipe-surface')
+    dragSwipeSurface(surface as Element, SWIPE_COMMIT_THRESHOLD_PX - 20)
+
+    expect(onLike).not.toHaveBeenCalled()
+    expect(onPass).not.toHaveBeenCalled()
+  })
+
+  it('still commits swipe gestures when reduced motion is preferred', () => {
+    mockMatchMedia(true)
+    const onLike = vi.fn()
+    const onPass = vi.fn()
+    const { container } = render(
+      <RecipeSwipeCard recipe={fullRecipe} onLike={onLike} onPass={onPass} />
+    )
+
+    const surface = container.querySelector('.recipe-swipe-card__swipe-surface')
+    dragSwipeSurface(surface as Element, SWIPE_COMMIT_THRESHOLD_PX + 4)
+
+    expect(onLike).toHaveBeenCalledTimes(1)
+    expect(onPass).not.toHaveBeenCalled()
   })
 
   it('exposes accessible names on action buttons', () => {

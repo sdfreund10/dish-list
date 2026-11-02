@@ -162,6 +162,27 @@ describe('HomePage swipe deck', () => {
     cleanup()
   })
 
+  it('keeps action focus and ignores the second click of a double-click after advancing', async () => {
+    fetchFeedMock.mockResolvedValueOnce({
+      items: [makeRecipe(1), makeRecipe(2), makeRecipe(3)],
+      remaining: 0
+    })
+
+    render(<HomePage />)
+    const passButton = await screen.findByRole('button', { name: 'Pass Recipe 1' })
+    passButton.focus()
+    fireEvent.click(passButton, { detail: 1 })
+
+    const nextPassButton = screen.getByRole('button', { name: 'Pass Recipe 2' })
+    expect(document.activeElement).toBe(nextPassButton)
+    fireEvent.click(nextPassButton, { detail: 2 })
+    expect(screen.getByRole('heading', { name: 'Recipe 2' })).toBeTruthy()
+
+    fireEvent.click(nextPassButton, { detail: 1 })
+    expect(screen.getByRole('heading', { name: 'Recipe 3' })).toBeTruthy()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Pass Recipe 3' }))
+  })
+
   it('shows the next recipe image after the previous image fails', async () => {
     const first = { ...makeRecipe(1), image: 'https://example.com/first.jpg' }
     const next = { ...makeRecipe(2), image: 'https://example.com/next.jpg' }

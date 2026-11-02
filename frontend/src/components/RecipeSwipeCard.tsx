@@ -99,10 +99,10 @@ export function RecipeSwipeCard ({
   onLike,
   onPass
 }: RecipeSwipeCardProps): ReactElement {
-  const [imageFailed, setImageFailed] = useState(false)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const hasImageUrl =
     recipe.image != null && recipe.image.trim() !== ''
-  const showImage = hasImageUrl && !imageFailed
+  const showImage = hasImageUrl && recipe.image !== failedImageUrl
   const tags = collectTags(recipe)
   const timeLabel =
     recipe.total_min != null && recipe.total_min > 0
@@ -120,7 +120,7 @@ export function RecipeSwipeCard ({
               src={recipe.image ?? undefined}
               alt=''
               onError={() => {
-                setImageFailed(true)
+                setFailedImageUrl(recipe.image)
               }}
             />
             )
@@ -163,7 +163,9 @@ export function RecipeSwipeCard ({
           type='button'
           className='recipe-swipe-card__action recipe-swipe-card__action--pass'
           aria-label={`Pass ${recipe.name}`}
-          onClick={onPass}
+          onClick={event => {
+            if (event.detail <= 1) onPass()
+          }}
         >
           Pass
         </button>
@@ -171,7 +173,9 @@ export function RecipeSwipeCard ({
           type='button'
           className='recipe-swipe-card__action recipe-swipe-card__action--like'
           aria-label={`Like ${recipe.name}`}
-          onClick={onLike}
+          onClick={event => {
+            if (event.detail <= 1) onLike()
+          }}
         >
           Like
         </button>

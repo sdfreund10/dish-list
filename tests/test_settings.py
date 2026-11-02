@@ -22,6 +22,8 @@ def test_default_cors_origins_include_vite_dev_ports() -> None:
     assert origins == [
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
     ]
 
 

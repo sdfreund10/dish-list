@@ -110,7 +110,7 @@ npm test
 npm run build
 ```
 
-The Vite app listens on `http://localhost:5173`. If that port is taken it uses the next free port, such as `5174`. The default `CORS_ORIGINS` allows both. The app calls `VITE_API_BASE_URL` (default `http://localhost:8000`).
+The Vite app listens on `http://localhost:5173`. If that port is taken it uses the next free port, such as `5174`. The default `CORS_ORIGINS` allows both ports on `localhost` and `127.0.0.1`. The app calls `VITE_API_BASE_URL` (default `http://localhost:8000`).
 
 ## Continuous integration
 

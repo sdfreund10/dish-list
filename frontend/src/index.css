@@ -60,22 +60,6 @@ body {
   min-height: 0;
 }
 
-.api-status {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  background: #ebe4d8;
-  font-size: 0.9rem;
-}
-
-.api-status-ok {
-  background: #d7f0df;
-}
-
-.api-status-error {
-  background: #f6d7d7;
-}
-
 .home-status {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;

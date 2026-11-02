@@ -162,6 +162,22 @@ describe('HomePage swipe deck', () => {
     cleanup()
   })
 
+  it('shows the next recipe image after the previous image fails', async () => {
+    const first = { ...makeRecipe(1), image: 'https://example.com/first.jpg' }
+    const next = { ...makeRecipe(2), image: 'https://example.com/next.jpg' }
+    fetchFeedMock.mockResolvedValueOnce({ items: [first, next], remaining: 0 })
+
+    render(<HomePage />)
+    fireEvent.error(await screen.findByAltText(''))
+    expect(screen.getByText('No photo')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: `Pass ${first.name}` }))
+
+    expect(screen.getByRole('heading', { name: next.name })).toBeTruthy()
+    expect(screen.getByAltText('').getAttribute('src')).toBe(next.image)
+    expect(screen.queryByText('No photo')).toBeNull()
+  })
+
   it('shows exhausted messaging after the deck runs out', async () => {
     fetchFeedMock.mockResolvedValueOnce({
       items: [makeRecipe(7, 'Solo Stew')],

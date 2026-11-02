@@ -37,6 +37,7 @@ export function HomePage (): ReactElement {
 
       {status === 'ready' && currentRecipe != null && (
         <RecipeSwipeCard
+          key={currentRecipe.id}
           recipe={currentRecipe}
           onLike={handleLike}
           onPass={handlePass}

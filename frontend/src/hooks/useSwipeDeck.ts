@@ -64,6 +64,13 @@ export function useSwipeDeck (): UseSwipeDeckResult {
     prefetchFailed: false
   })
   const prefetchingRef = useRef(false)
+  const nextImageUrl = deck.queue[0]?.image
+
+  useEffect(() => {
+    if (nextImageUrl == null || nextImageUrl.trim() === '') return
+    const image = new Image()
+    image.src = nextImageUrl
+  }, [nextImageUrl])
 
   useEffect(() => {
     const controller = new AbortController()

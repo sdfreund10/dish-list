@@ -63,7 +63,6 @@ export function useSwipeDeck (): UseSwipeDeckResult {
     engagements: [],
     prefetchFailed: false
   })
-  const advancingRef = useRef(false)
   const prefetchingRef = useRef(false)
 
   useEffect(() => {
@@ -131,7 +130,7 @@ export function useSwipeDeck (): UseSwipeDeckResult {
             ...current,
             currentRecipe,
             queue,
-            feedRemaining: page.remaining,
+            feedRemaining: page.items.length === 0 ? 0 : page.remaining,
             status: currentRecipe == null ? 'exhausted' : 'ready'
           }
         })
@@ -150,13 +149,9 @@ export function useSwipeDeck (): UseSwipeDeckResult {
   }, [deck])
 
   const advance = useCallback((action: SwipeAction): void => {
-    if (advancingRef.current) {
-      return
-    }
-
-    advancingRef.current = true
+    const recipeId = deck.currentRecipe?.id
     setDeck(current => {
-      if (current.currentRecipe == null) {
+      if (current.currentRecipe == null || current.currentRecipe.id !== recipeId) {
         return current
       }
 
@@ -170,13 +165,10 @@ export function useSwipeDeck (): UseSwipeDeckResult {
           { recipeId: current.currentRecipe.id, action }
         ],
         status: next != null ? 'ready' : current.feedRemaining > 0 ? 'loading' : 'exhausted',
-        prefetchFailed: false
+        prefetchFailed: next == null ? false : current.prefetchFailed
       }
     })
-    queueMicrotask(() => {
-      advancingRef.current = false
-    })
-  }, [])
+  }, [deck.currentRecipe?.id])
 
   const handleLike = useCallback((): void => {
     advance('like')

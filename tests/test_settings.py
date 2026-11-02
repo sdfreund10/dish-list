@@ -15,6 +15,16 @@ def test_test_environment_defaults_to_dish_list_test_database() -> None:
     assert settings.database_url == "postgresql+psycopg://localhost/dish_list_test"
 
 
+def test_default_cors_origins_include_vite_dev_ports() -> None:
+    default = Settings.model_fields["cors_origins"].default
+    origins = [origin.strip() for origin in default.split(",") if origin.strip()]
+
+    assert origins == [
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ]
+
+
 def test_explicit_database_url_wins() -> None:
     settings = Settings(
         environment="test",

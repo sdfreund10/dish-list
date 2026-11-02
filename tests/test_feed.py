@@ -107,6 +107,8 @@ def _seed_feed_recipes(count: int) -> list[Recipe]:
                 description=f"Description {index}",
                 image=f"https://example.com/images/{source_id}.jpg",
                 total_min=20 + index,
+                rating=5,
+                rating_count=120 + index,
                 categories=categories,
                 keywords=["Easy", f"Tag{index}"],
                 source_data={"id": source_id, "name": f"Feed Test Recipe {index}"},
@@ -174,6 +176,8 @@ def test_feed_item_includes_card_fields() -> None:
             "description": recipe.description,
             "image": recipe.image,
             "total_min": recipe.total_min,
+            "rating": recipe.rating,
+            "rating_count": recipe.rating_count,
             "categories": recipe.categories,
             "keywords": recipe.keywords,
         }

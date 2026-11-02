@@ -73,6 +73,7 @@ body {
 }
 
 .recipe-swipe-card {
+  position: relative;
   flex: 1;
   width: 100%;
   max-width: 28rem;
@@ -88,20 +89,31 @@ body {
 }
 
 .recipe-swipe-card__swipe-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   position: relative;
-  touch-action: none;
+  touch-action: pan-y;
   transform-origin: center bottom;
-  transition: transform 0.22s ease;
-  will-change: transform;
+  background: #fffdf9;
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .recipe-swipe-card__swipe-surface--dragging {
   transition: none;
   cursor: grabbing;
-  user-select: none;
+  will-change: transform;
 }
 
-.recipe-swipe-card__swipe-surface--reduced-motion {
+.recipe-swipe-card__exit {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  pointer-events: none;
   transition: none;
 }
 
@@ -117,6 +129,7 @@ body {
 }
 
 .recipe-swipe-card__hint {
+  opacity: 0;
   padding: 0.35rem 0.75rem;
   border-radius: 0.5rem;
   font-size: 0.85rem;
@@ -140,12 +153,15 @@ body {
 }
 
 .recipe-swipe-card__media {
+  position: relative;
   flex: 1;
   min-height: 9rem;
   background: #ebe4d8;
 }
 
 .recipe-swipe-card__image {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -264,17 +280,25 @@ body {
   color: #3d3830;
 }
 
-.recipe-swipe-card__action--pass:hover {
-  background: #ebe4d8;
-}
-
 .recipe-swipe-card__action--like {
   background: #2f6b4f;
   color: #fffdf9;
 }
 
-.recipe-swipe-card__action--like:hover {
-  background: #265a42;
+@media (hover: hover) and (pointer: fine) {
+  .recipe-swipe-card__action--pass:hover {
+    background: #ebe4d8;
+  }
+
+  .recipe-swipe-card__action--like:hover {
+    background: #265a42;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recipe-swipe-card__swipe-surface {
+    transition: none;
+  }
 }
 
 .recipe-swipe-card__action:focus-visible {

@@ -101,11 +101,9 @@ export function RecipeSwipeCard ({
   onPass
 }: RecipeSwipeCardProps): ReactElement {
   const {
-    showLikeHint,
-    showPassHint,
-    hintOpacity,
-    swipeSurfaceStyle,
-    swipeSurfaceClassName,
+    surfaceRef,
+    likeHintRef,
+    passHintRef,
     onSwipePointerDown,
     onSwipePointerMove,
     onSwipePointerUp,
@@ -125,33 +123,22 @@ export function RecipeSwipeCard ({
   return (
     <article className='recipe-swipe-card' aria-labelledby={`recipe-title-${recipe.id}`}>
       <div
-        className={swipeSurfaceClassName}
-        style={swipeSurfaceStyle}
+        ref={surfaceRef}
+        className='recipe-swipe-card__swipe-surface'
         onPointerDown={onSwipePointerDown}
         onPointerMove={onSwipePointerMove}
         onPointerUp={onSwipePointerUp}
         onPointerCancel={onSwipePointerCancel}
+        onLostPointerCapture={onSwipePointerCancel}
       >
-        {(showLikeHint || showPassHint) && (
-          <div className='recipe-swipe-card__hints' aria-hidden='true'>
-            {showLikeHint && (
-              <span
-                className='recipe-swipe-card__hint recipe-swipe-card__hint--like'
-                style={{ opacity: hintOpacity }}
-              >
-                Like
-              </span>
-            )}
-            {showPassHint && (
-              <span
-                className='recipe-swipe-card__hint recipe-swipe-card__hint--pass'
-                style={{ opacity: hintOpacity }}
-              >
-                Pass
-              </span>
-            )}
-          </div>
-        )}
+        <div className='recipe-swipe-card__hints' aria-hidden='true'>
+          <span ref={likeHintRef} className='recipe-swipe-card__hint recipe-swipe-card__hint--like'>
+            Like
+          </span>
+          <span ref={passHintRef} className='recipe-swipe-card__hint recipe-swipe-card__hint--pass'>
+            Pass
+          </span>
+        </div>
 
         <div className='recipe-swipe-card__media'>
           {showImage

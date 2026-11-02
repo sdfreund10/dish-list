@@ -45,69 +45,25 @@ function collectSeenIds (
   return [...ids]
 }
 
+interface SwipeDeckState {
+  status: SwipeDeckStatus
+  currentRecipe: FeedItem | null
+  queue: FeedItem[]
+  feedRemaining: number
+  engagements: SwipeEngagement[]
+  prefetchFailed: boolean
+}
+
 export function useSwipeDeck (): UseSwipeDeckResult {
-  const [status, setStatus] = useState<SwipeDeckStatus>('loading')
-  const [currentRecipe, setCurrentRecipe] = useState<FeedItem | null>(null)
-  const [queue, setQueue] = useState<FeedItem[]>([])
-  const [feedRemaining, setFeedRemaining] = useState(0)
-  const [engagements, setEngagements] = useState<SwipeEngagement[]>([])
-
-  const currentRef = useRef<FeedItem | null>(null)
-  const queueRef = useRef<FeedItem[]>([])
-  const feedRemainingRef = useRef(0)
-  const engagementsRef = useRef<SwipeEngagement[]>([])
-  const advancingRef = useRef(false)
+  const [deck, setDeck] = useState<SwipeDeckState>({
+    status: 'loading',
+    currentRecipe: null,
+    queue: [],
+    feedRemaining: 0,
+    engagements: [],
+    prefetchFailed: false
+  })
   const prefetchingRef = useRef(false)
-
-  currentRef.current = currentRecipe
-  queueRef.current = queue
-  feedRemainingRef.current = feedRemaining
-  engagementsRef.current = engagements
-
-  const prefetchNextPage = useCallback(async (): Promise<void> => {
-    if (prefetchingRef.current) {
-      return
-    }
-
-    if (feedRemainingRef.current <= 0) {
-      return
-    }
-
-    if (queueRef.current.length > SWIPE_DECK_PREFETCH_THRESHOLD) {
-      return
-    }
-
-    prefetchingRef.current = true
-
-    try {
-      const page = await fetchFeed({
-        limit: SWIPE_DECK_PAGE_SIZE,
-        excludeIds: collectSeenIds(
-          currentRef.current,
-          queueRef.current,
-          engagementsRef.current
-        )
-      })
-
-      feedRemainingRef.current = page.remaining
-      queueRef.current = [...queueRef.current, ...page.items]
-      setFeedRemaining(page.remaining)
-      setQueue(queueRef.current)
-
-      if (
-        queueRef.current.length <= SWIPE_DECK_PREFETCH_THRESHOLD &&
-        feedRemainingRef.current > 0
-      ) {
-        queueMicrotask(() => {
-          void prefetchNextPage()
-        })
-      }
-    } catch {
-      // Keep the visible card; a later swipe or prefetch can retry.
-    } finally {
-      prefetchingRef.current = false
-    }
-  }, [])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -119,25 +75,24 @@ export function useSwipeDeck (): UseSwipeDeckResult {
           signal: controller.signal
         })
 
-        if (page.items.length === 0) {
-          setStatus('empty')
+        if (controller.signal.aborted) {
           return
         }
 
         const [first, ...rest] = page.items
-        currentRef.current = first
-        queueRef.current = rest
-        feedRemainingRef.current = page.remaining
-        setCurrentRecipe(first)
-        setQueue(rest)
-        setFeedRemaining(page.remaining)
-        setStatus('ready')
-        void prefetchNextPage()
+        setDeck({
+          status: first == null ? 'empty' : 'ready',
+          currentRecipe: first ?? null,
+          queue: rest,
+          feedRemaining: page.remaining,
+          engagements: [],
+          prefetchFailed: false
+        })
       } catch {
         if (controller.signal.aborted) {
           return
         }
-        setStatus('error')
+        setDeck(current => ({ ...current, status: 'error' }))
       }
     }
 
@@ -148,76 +103,85 @@ export function useSwipeDeck (): UseSwipeDeckResult {
     }
   }, [])
 
-  const advance = useCallback(async (action: SwipeAction): Promise<void> => {
-    if (advancingRef.current) {
+  useEffect(() => {
+    if (
+      (deck.status !== 'ready' && deck.status !== 'loading') ||
+      deck.feedRemaining <= 0 ||
+      deck.queue.length > SWIPE_DECK_PREFETCH_THRESHOLD ||
+      deck.prefetchFailed ||
+      prefetchingRef.current
+    ) {
       return
     }
 
-    const current = currentRef.current
-    if (current == null) {
-      return
+    prefetchingRef.current = true
+
+    async function prefetchNextPage (): Promise<void> {
+      try {
+        const page = await fetchFeed({
+          limit: SWIPE_DECK_PAGE_SIZE,
+          excludeIds: collectSeenIds(deck.currentRecipe, deck.queue, deck.engagements)
+        })
+
+        setDeck(current => {
+          const queue = [...current.queue, ...page.items]
+          const currentRecipe = current.currentRecipe ?? queue.shift() ?? null
+          return {
+            ...current,
+            currentRecipe,
+            queue,
+            feedRemaining: page.items.length === 0 ? 0 : page.remaining,
+            status: currentRecipe == null ? 'exhausted' : 'ready'
+          }
+        })
+      } catch {
+        setDeck(current => ({
+          ...current,
+          status: current.currentRecipe == null ? 'error' : current.status,
+          prefetchFailed: true
+        }))
+      } finally {
+        prefetchingRef.current = false
+      }
     }
 
-    advancingRef.current = true
+    void prefetchNextPage()
+  }, [deck])
 
-    try {
-      const nextEngagements = [
-        ...engagementsRef.current,
-        { recipeId: current.id, action }
-      ]
-      engagementsRef.current = nextEngagements
-      setEngagements(nextEngagements)
-
-      let nextQueue = [...queueRef.current]
-      let nextCurrent = nextQueue.shift() ?? null
-      let remaining = feedRemainingRef.current
-
-      if (nextCurrent == null && remaining > 0) {
-        try {
-          const page = await fetchFeed({
-            limit: SWIPE_DECK_PAGE_SIZE,
-            excludeIds: collectSeenIds(null, nextQueue, nextEngagements)
-          })
-          remaining = page.remaining
-          nextQueue = [...nextQueue, ...page.items]
-          nextCurrent = nextQueue.shift() ?? null
-        } catch {
-          engagementsRef.current = engagementsRef.current.slice(0, -1)
-          setEngagements(engagementsRef.current)
-          return
-        }
+  const advance = useCallback((action: SwipeAction): void => {
+    const recipeId = deck.currentRecipe?.id
+    setDeck(current => {
+      if (current.currentRecipe == null || current.currentRecipe.id !== recipeId) {
+        return current
       }
 
-      queueRef.current = nextQueue
-      feedRemainingRef.current = remaining
-      currentRef.current = nextCurrent
-      setQueue(nextQueue)
-      setFeedRemaining(remaining)
-      setCurrentRecipe(nextCurrent)
-      setStatus(nextCurrent == null ? 'exhausted' : 'ready')
-
-      if (nextCurrent != null && remaining > 0) {
-        void prefetchNextPage()
+      const [next, ...rest] = current.queue
+      return {
+        ...current,
+        currentRecipe: next ?? null,
+        queue: rest,
+        engagements: [
+          ...current.engagements,
+          { recipeId: current.currentRecipe.id, action }
+        ],
+        status: next != null ? 'ready' : current.feedRemaining > 0 ? 'loading' : 'exhausted',
+        prefetchFailed: next == null ? false : current.prefetchFailed
       }
-    } finally {
-      queueMicrotask(() => {
-        advancingRef.current = false
-      })
-    }
-  }, [prefetchNextPage])
+    })
+  }, [deck.currentRecipe?.id])
 
   const handleLike = useCallback((): void => {
-    void advance('like')
+    advance('like')
   }, [advance])
 
   const handlePass = useCallback((): void => {
-    void advance('pass')
+    advance('pass')
   }, [advance])
 
   return {
-    status,
-    currentRecipe,
-    engagements,
+    status: deck.status,
+    currentRecipe: deck.currentRecipe,
+    engagements: deck.engagements,
     handleLike,
     handlePass
   }

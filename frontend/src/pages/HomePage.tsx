@@ -15,9 +15,6 @@ export function HomePage (): ReactElement {
 
   return (
     <section className='home'>
-      <h1>Swipe Engagement</h1>
-      <p>Anonymous recipe-swiping experiment.</p>
-
       {status === 'loading' && (
         <p className='home-status' role='status'>Loading recipes…</p>
       )}

@@ -4,6 +4,8 @@ export interface FeedItem {
   description: string | null
   image: string | null
   total_min: number | null
+  rating: number | null
+  rating_count: number | null
   categories: string[]
   keywords: string[]
 }

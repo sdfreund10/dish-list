@@ -94,7 +94,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
   transform-origin: center bottom;
   background: #fffdf9;
   transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);

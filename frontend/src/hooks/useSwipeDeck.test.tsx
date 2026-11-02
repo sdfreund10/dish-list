@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { fetchFeed } from '../api/feed'
 import { HomePage } from '../pages/HomePage'
 import { SWIPE_DECK_PAGE_SIZE, useSwipeDeck } from './useSwipeDeck'
-import type { FeedItem } from '../types/feed'
+import type { FeedItem, FeedResponse } from '../types/feed'
 
 vi.mock('../api/feed', () => ({
   fetchFeed: vi.fn()
@@ -21,6 +21,8 @@ function makeRecipe (id: number, name?: string): FeedItem {
     description: null,
     image: null,
     total_min: null,
+    rating: null,
+    rating_count: null,
     categories: [],
     keywords: []
   }
@@ -129,7 +131,7 @@ describe('useSwipeDeck', () => {
 
     fetchFeedMock.mockResolvedValueOnce({
       items: [makeRecipe(100)],
-      remaining: 9
+      remaining: 0
     })
 
     const { result } = renderHook(() => useSwipeDeck())
@@ -151,6 +153,79 @@ describe('useSwipeDeck', () => {
     })?.[0]
     expect(prefetchCall?.excludeIds).toEqual([1, 2, 3])
     expect(result.current.currentRecipe?.id).toBe(1)
+  })
+
+  it('preserves swipes made while prefetching', async () => {
+    let resolvePage: (page: FeedResponse) => void = () => {}
+    fetchFeedMock.mockResolvedValueOnce({
+      items: [makeRecipe(1), makeRecipe(2), makeRecipe(3)],
+      remaining: 1
+    })
+    fetchFeedMock.mockImplementationOnce(async () => await new Promise(resolve => {
+      resolvePage = resolve
+    }))
+
+    const { result } = renderHook(() => useSwipeDeck())
+    await waitFor(() => expect(fetchFeedMock).toHaveBeenCalledTimes(2))
+
+    await act(async () => result.current.handleLike())
+    expect(result.current.currentRecipe?.id).toBe(2)
+
+    await act(async () => {
+      resolvePage({ items: [makeRecipe(4)], remaining: 0 })
+    })
+    await act(async () => result.current.handlePass())
+    expect(result.current.currentRecipe?.id).toBe(3)
+    await act(async () => result.current.handleLike())
+    expect(result.current.currentRecipe?.id).toBe(4)
+    expect(result.current.engagements).toEqual([
+      { recipeId: 1, action: 'like' },
+      { recipeId: 2, action: 'pass' },
+      { recipeId: 3, action: 'like' }
+    ])
+  })
+
+  it('waits for the existing prefetch when the queue is empty', async () => {
+    let resolvePage: (page: FeedResponse) => void = () => {}
+    fetchFeedMock.mockResolvedValueOnce({ items: [makeRecipe(1)], remaining: 1 })
+    fetchFeedMock.mockImplementationOnce(async () => await new Promise(resolve => {
+      resolvePage = resolve
+    }))
+
+    const { result } = renderHook(() => useSwipeDeck())
+    await waitFor(() => expect(fetchFeedMock).toHaveBeenCalledTimes(2))
+
+    act(() => {
+      result.current.handleLike()
+      result.current.handlePass()
+    })
+    expect(result.current.currentRecipe?.id).toBe(1)
+
+    await act(async () => {
+      resolvePage({ items: [makeRecipe(2)], remaining: 0 })
+    })
+
+    expect(fetchFeedMock).toHaveBeenCalledTimes(2)
+    expect(result.current.currentRecipe?.id).toBe(2)
+    expect(result.current.engagements).toEqual([{ recipeId: 1, action: 'like' }])
+  })
+
+  it('keeps the card after a failed fetch and retries on the next swipe', async () => {
+    fetchFeedMock.mockResolvedValueOnce({ items: [makeRecipe(1)], remaining: 1 })
+    fetchFeedMock.mockRejectedValueOnce(new Error('Prefetch failed'))
+    fetchFeedMock.mockRejectedValueOnce(new Error('Swipe fetch failed'))
+    fetchFeedMock.mockResolvedValueOnce({ items: [makeRecipe(2)], remaining: 0 })
+
+    const { result } = renderHook(() => useSwipeDeck())
+    await waitFor(() => expect(fetchFeedMock).toHaveBeenCalledTimes(2))
+
+    await act(async () => result.current.handleLike())
+    expect(result.current.currentRecipe?.id).toBe(1)
+    expect(result.current.engagements).toEqual([])
+
+    await act(async () => result.current.handlePass())
+    expect(result.current.currentRecipe?.id).toBe(2)
+    expect(result.current.engagements).toEqual([{ recipeId: 1, action: 'pass' }])
   })
 
   it('enters exhausted state after the last recipe is swiped', async () => {

@@ -2,15 +2,30 @@
 
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import { fetchFeed } from '../api/feed'
+import { createSession, recordRating } from '../api/sessions'
 import { HomePage } from '../pages/HomePage'
+import { SwipeExperience } from '../swipe/SwipeExperience'
 import { SWIPE_DECK_PAGE_SIZE, SWIPE_DECK_PREFETCH_THRESHOLD, useSwipeDeck } from './useSwipeDeck'
+import { resetSwipeSessionCache } from './useSwipeSession'
 import type { FeedItem, FeedResponse } from '../types/feed'
 
 vi.mock('../api/feed', () => ({
   fetchFeed: vi.fn()
 }))
+
+vi.mock('../api/sessions', async () => {
+  const actual = await vi.importActual<typeof import('../api/sessions')>('../api/sessions')
+  return {
+    ...actual,
+    createSession: vi.fn(),
+    fetchSessionState: vi.fn(),
+    recordRating: vi.fn(),
+    generateMealPlan: vi.fn()
+  }
+})
 
 const fetchFeedMock = vi.mocked(fetchFeed)
 
@@ -153,9 +168,40 @@ describe('useSwipeDeck', () => {
   })
 })
 
+function renderHome (): void {
+  render(
+    <MemoryRouter>
+      <SwipeExperience>
+        <HomePage />
+      </SwipeExperience>
+    </MemoryRouter>
+  )
+}
+
 describe('HomePage swipe deck', () => {
   beforeEach(() => {
     fetchFeedMock.mockReset()
+    sessionStorage.clear()
+    resetSwipeSessionCache()
+    vi.mocked(createSession).mockResolvedValue({
+      id: 'session-1',
+      state: {
+        rating_count: 0,
+        like_count: 0,
+        liked_recipe_ids: [],
+        eligible: false
+      }
+    })
+    vi.mocked(recordRating).mockResolvedValue({
+      recipe_id: 1,
+      action: 'pass',
+      session: {
+        rating_count: 1,
+        like_count: 0,
+        liked_recipe_ids: [],
+        eligible: false
+      }
+    })
   })
 
   afterEach(() => {
@@ -168,7 +214,7 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    renderHome()
     const passButton = await screen.findByRole('button', { name: 'Pass Recipe 1' })
     passButton.focus()
     fireEvent.click(passButton, { detail: 1 })
@@ -188,7 +234,7 @@ describe('HomePage swipe deck', () => {
     const next = { ...makeRecipe(2), image: 'https://example.com/next.jpg' }
     fetchFeedMock.mockResolvedValueOnce({ items: [first, next], remaining: 0 })
 
-    render(<HomePage />)
+    renderHome()
     fireEvent.error(await screen.findByAltText(''))
     expect(screen.getByText('No photo')).toBeTruthy()
 
@@ -205,7 +251,7 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    renderHome()
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Solo Stew' })).toBeTruthy()

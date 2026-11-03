@@ -1,18 +1,47 @@
 import type { ReactElement } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { RecipeSwipeCard } from '../components/RecipeSwipeCard'
-import { useSwipeDeck } from '../hooks/useSwipeDeck'
+import type { SwipeAction } from '../hooks/useSwipeDeck'
+import { useSwipeExperience } from '../swipe/SwipeExperience'
 
 export function HomePage (): ReactElement {
+  const navigate = useNavigate()
+  const { session, deck } = useSwipeExperience()
   const {
     status,
     currentRecipe,
     handleLike,
     handlePass
-  } = useSwipeDeck()
+  } = deck
+
+  function rate (action: SwipeAction): void {
+    const recipeId = currentRecipe?.id
+    if (action === 'like') handleLike()
+    else handlePass()
+    if (recipeId != null) {
+      session.recordEngagement({ recipeId, action })
+    }
+  }
+
+  function openPlan (): void {
+    void navigate('/plan', { state: { generate: true } })
+  }
 
   return (
     <section className='home'>
+      {session.eligible && (
+        <div className='generate-plan'>
+          <button
+            type='button'
+            className='generate-plan__button'
+            onClick={openPlan}
+          >
+            Generate meal plan
+          </button>
+        </div>
+      )}
+
       {status === 'loading' && (
         <p className='home-status' role='status'>Loading recipes…</p>
       )}
@@ -38,8 +67,12 @@ export function HomePage (): ReactElement {
       {status === 'ready' && currentRecipe != null && (
         <RecipeSwipeCard
           recipe={currentRecipe}
-          onLike={handleLike}
-          onPass={handlePass}
+          onLike={() => {
+            rate('like')
+          }}
+          onPass={() => {
+            rate('pass')
+          }}
         />
       )}
     </section>

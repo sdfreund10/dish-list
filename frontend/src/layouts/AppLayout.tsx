@@ -1,15 +1,19 @@
 import { type ReactElement } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Link, Outlet } from 'react-router-dom'
+
+import { SwipeExperience } from '../swipe/SwipeExperience'
 
 export function AppLayout (): ReactElement {
   return (
-    <div className='app-shell'>
-      <header className='app-header'>
-        <p className='app-brand'>dish-list</p>
-      </header>
-      <main className='app-main'>
-        <Outlet />
-      </main>
-    </div>
+    <SwipeExperience>
+      <div className='app-shell'>
+        <header className='app-header'>
+          <Link className='app-brand' to='/'>dish-list</Link>
+        </header>
+        <main className='app-main'>
+          <Outlet />
+        </main>
+      </div>
+    </SwipeExperience>
   )
 }

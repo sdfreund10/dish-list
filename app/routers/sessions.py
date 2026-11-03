@@ -6,15 +6,18 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas.session import (
+    MealPlanResponse,
     RatingRequest,
     RatingResult,
     SessionCreated,
     SessionState,
 )
 from app.services.engagement import (
+    NotEligible,
     RecipeNotFound,
     SessionNotFound,
     create_session,
+    generate_meal_plan,
     record_rating,
     session_state,
 )
@@ -82,3 +85,16 @@ def _stored_action(action: str) -> Literal["like", "pass"]:
     if action == "pass":
         return "pass"
     raise HTTPException(status_code=500, detail="stored_rating_action_invalid")
+
+
+@router.post("/sessions/{session_id}/meal-plan", response_model=MealPlanResponse)
+def post_meal_plan(
+    session_id: UUID,
+    db: Annotated[Session, Depends(get_db)],
+) -> MealPlanResponse:
+    try:
+        return generate_meal_plan(db, session_id)
+    except SessionNotFound as error:
+        _missing_session(error)
+    except NotEligible as error:
+        raise HTTPException(status_code=403, detail="not_eligible") from error

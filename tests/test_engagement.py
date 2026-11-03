@@ -86,6 +86,7 @@ def test_unknown_session_is_not_found() -> None:
         ).status_code
         == 404
     )
+    assert client.post(f"/sessions/{missing}/meal-plan").status_code == 404
 
 
 def test_duplicate_rating_does_not_inflate_counts() -> None:
@@ -114,9 +115,10 @@ def test_six_likes_and_nine_ratings_stay_locked() -> None:
     assert body["session"]["rating_count"] == 9
     assert body["session"]["like_count"] == 6
     assert body["session"]["eligible"] is False
+    assert client.post(f"/sessions/{session_id}/meal-plan").status_code == 403
 
 
-def test_seven_likes_unlock() -> None:
+def test_seven_likes_generate_three_distinct_likes() -> None:
     recipes = _seed_recipes(9)
     session_id = _create_session()
     liked = recipes[:7]
@@ -134,8 +136,21 @@ def test_seven_likes_unlock() -> None:
     assert state.status_code == 200
     assert state.json()["eligible"] is True
 
+    generated = client.post(f"/sessions/{session_id}/meal-plan")
+    assert generated.status_code == 200
+    body = generated.json()
+    liked_ids = {recipe.id for recipe in liked}
+    selected_ids = [recipe["id"] for recipe in body["recipes"]]
+    assert body["status"] == "generated"
+    assert len(selected_ids) == 3
+    assert len(set(selected_ids)) == 3
+    assert set(selected_ids) <= liked_ids
+    assert set(selected_ids).isdisjoint({recipe.id for recipe in passed})
+    assert body["recipes"][0]["url"].startswith("https://example.com/recipes/")
+    assert body["recipes"][0]["name"].startswith("Plan Recipe")
 
-def test_ten_ratings_unlock() -> None:
+
+def test_ten_ratings_need_three_likes_before_a_plan() -> None:
     recipes = _seed_recipes(12)
     session_id = _create_session()
 
@@ -148,3 +163,18 @@ def test_ten_ratings_unlock() -> None:
     assert crossing["session"]["rating_count"] == 10
     assert crossing["session"]["like_count"] == 2
     assert crossing["session"]["eligible"] is True
+
+    insufficient = client.post(f"/sessions/{session_id}/meal-plan")
+    assert insufficient.status_code == 200
+    assert insufficient.json() == {
+        "status": "insufficient_likes",
+        "recipes": [],
+        "like_count": 2,
+        "rating_count": 10,
+    }
+
+    _rate(session_id, recipes[10].id, "like")
+    generated = client.post(f"/sessions/{session_id}/meal-plan")
+    assert generated.status_code == 200
+    assert generated.json()["status"] == "generated"
+    assert len(generated.json()["recipes"]) == 3

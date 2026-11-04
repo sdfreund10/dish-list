@@ -13,7 +13,9 @@ import {
 describe('clientSession', () => {
   beforeEach(() => {
     sessionStorage.clear()
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue('session-1')
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(
+      '00000000-0000-4000-8000-000000000001'
+    )
   })
 
   afterEach(() => {
@@ -22,16 +24,23 @@ describe('clientSession', () => {
 
   it('creates a local anonymous session without a server round trip', () => {
     const created = ensureClientSession()
-    expect(created).toEqual({ id: 'session-1', ratings: [] })
+    expect(created).toEqual({
+      id: '00000000-0000-4000-8000-000000000001',
+      ratings: []
+    })
     expect(readClientSession()).toEqual(created)
-    expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toContain('session-1')
+    expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toContain(
+      '00000000-0000-4000-8000-000000000001'
+    )
   })
 
   it('reuses the stored session on later calls', () => {
     ensureClientSession()
-    vi.mocked(crypto.randomUUID).mockReturnValue('session-2')
+    vi.mocked(crypto.randomUUID).mockReturnValue(
+      '00000000-0000-4000-8000-000000000002'
+    )
 
-    expect(ensureClientSession().id).toBe('session-1')
+    expect(ensureClientSession().id).toBe('00000000-0000-4000-8000-000000000001')
     expect(crypto.randomUUID).toHaveBeenCalledTimes(1)
   })
 

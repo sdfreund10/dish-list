@@ -2,10 +2,11 @@
 
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import { fetchFeed } from '../api/feed'
 import { HomePage } from '../pages/HomePage'
-import { readClientSession } from '../session/clientSession'
+import { MEAL_PLAN_STORAGE_KEY, readClientSession } from '../session/clientSession'
 import { SWIPE_DECK_PAGE_SIZE, SWIPE_DECK_PREFETCH_THRESHOLD, useSwipeDeck } from './useSwipeDeck'
 import type { FeedItem, FeedResponse } from '../types/feed'
 
@@ -193,6 +194,7 @@ describe('useSwipeDeck', () => {
 describe('HomePage swipe deck', () => {
   beforeEach(() => {
     sessionStorage.clear()
+    localStorage.clear()
     fetchFeedMock.mockReset()
   })
 
@@ -206,7 +208,11 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
     const passButton = await screen.findByRole('button', { name: 'Pass Recipe 1' })
     passButton.focus()
     fireEvent.click(passButton, { detail: 1 })
@@ -226,7 +232,11 @@ describe('HomePage swipe deck', () => {
     const next = { ...makeRecipe(2), image: 'https://example.com/next.jpg' }
     fetchFeedMock.mockResolvedValueOnce({ items: [first, next], remaining: 0 })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
     fireEvent.error(await screen.findByAltText(''))
     expect(screen.getByText('No photo')).toBeTruthy()
 
@@ -243,7 +253,11 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Solo Stew' })).toBeTruthy()
@@ -256,7 +270,7 @@ describe('HomePage swipe deck', () => {
     })
   })
 
-  it('shows Generate meal plan after three likes and keeps the deck open', async () => {
+  it('shows View plan progress in the header and enables it at three likes', async () => {
     fetchFeedMock.mockResolvedValueOnce({
       items: [
         makeRecipe(1, 'One'),
@@ -267,20 +281,103 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
     await screen.findByRole('heading', { name: 'One' })
-    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
+
+    const planButton = screen.getByRole('button', { name: 'View plan (0/3)' })
+    expect(planButton.hasAttribute('disabled')).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: 'Like One' }))
+    expect(screen.getByRole('button', { name: 'View plan (1/3)' }).hasAttribute('disabled')).toBe(true)
+
     fireEvent.click(screen.getByRole('button', { name: 'Like Two' }))
-    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'View plan (2/3)' }).hasAttribute('disabled')).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: 'Like Three' }))
-    expect(screen.getByRole('button', { name: 'Generate meal plan' })).toBeTruthy()
+    const unlockedButton = screen.getByRole('button', { name: 'View plan (3)' })
+    expect(unlockedButton.hasAttribute('disabled')).toBe(false)
     expect(screen.getByRole('heading', { name: 'Four' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Like Four' }))
-    expect(screen.getByRole('button', { name: 'Generate meal plan' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View plan (4)' }).hasAttribute('disabled')).toBe(false)
     expect(screen.getByText(/seen all available recipes/i)).toBeTruthy()
+  })
+
+  it('shows View plan (3) when a stored plan matches the session', async () => {
+    const ratings = [
+      { recipeId: 1, action: 'like' as const },
+      { recipeId: 2, action: 'like' as const },
+      { recipeId: 3, action: 'like' as const }
+    ]
+    sessionStorage.setItem(
+      'dish-list.session',
+      JSON.stringify({ id: 'session-1', ratings })
+    )
+    localStorage.setItem(
+      MEAL_PLAN_STORAGE_KEY,
+      JSON.stringify({
+        sessionId: 'session-1',
+        ratings,
+        recipes: [
+          {
+            id: 10,
+            name: 'Stored',
+            description: null,
+            image: null,
+            total_min: null,
+            rating: null,
+            rating_count: null,
+            categories: [],
+            keywords: [],
+            url: 'https://example.com/10',
+            author: null
+          },
+          {
+            id: 11,
+            name: 'Stored two',
+            description: null,
+            image: null,
+            total_min: null,
+            rating: null,
+            rating_count: null,
+            categories: [],
+            keywords: [],
+            url: 'https://example.com/11',
+            author: null
+          },
+          {
+            id: 12,
+            name: 'Stored three',
+            description: null,
+            image: null,
+            total_min: null,
+            rating: null,
+            rating_count: null,
+            categories: [],
+            keywords: [],
+            url: 'https://example.com/12',
+            author: null
+          }
+        ]
+      })
+    )
+    fetchFeedMock.mockResolvedValueOnce({
+      items: [makeRecipe(4, 'Next')],
+      remaining: 0
+    })
+
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
+
+    await screen.findByRole('heading', { name: 'Next' })
+    expect(screen.getByRole('button', { name: 'View plan (3)' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View plan (3)' }).hasAttribute('disabled')).toBe(false)
   })
 })

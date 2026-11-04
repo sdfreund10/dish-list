@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { fetchFeed } from '../api/feed'
+import {
+  appendClientRating,
+  ensureClientSession,
+  ratedRecipeIds
+} from '../session/clientSession'
 import type { FeedItem } from '../types/feed'
 
 export const SWIPE_DECK_PAGE_SIZE = 15
@@ -74,11 +79,13 @@ export function useSwipeDeck (): UseSwipeDeckResult {
 
   useEffect(() => {
     const controller = new AbortController()
+    const session = ensureClientSession()
 
     async function loadInitialPage (): Promise<void> {
       try {
         const page = await fetchFeed({
           limit: SWIPE_DECK_PAGE_SIZE,
+          excludeIds: ratedRecipeIds(session),
           signal: controller.signal
         })
 
@@ -88,11 +95,11 @@ export function useSwipeDeck (): UseSwipeDeckResult {
 
         const [first, ...rest] = page.items
         setDeck({
-          status: first == null ? 'empty' : 'ready',
+          status: first == null ? (session.ratings.length > 0 ? 'exhausted' : 'empty') : 'ready',
           currentRecipe: first ?? null,
           queue: rest,
           feedRemaining: page.remaining,
-          engagements: [],
+          engagements: session.ratings,
           prefetchFailed: false
         })
       } catch {
@@ -162,15 +169,16 @@ export function useSwipeDeck (): UseSwipeDeckResult {
         return current
       }
 
+      const session = appendClientRating({
+        recipeId: current.currentRecipe.id,
+        action
+      })
       const [next, ...rest] = current.queue
       return {
         ...current,
         currentRecipe: next ?? null,
         queue: rest,
-        engagements: [
-          ...current.engagements,
-          { recipeId: current.currentRecipe.id, action }
-        ],
+        engagements: session.ratings,
         status: next != null ? 'ready' : current.feedRemaining > 0 ? 'loading' : 'exhausted',
         prefetchFailed: next == null ? false : current.prefetchFailed
       }

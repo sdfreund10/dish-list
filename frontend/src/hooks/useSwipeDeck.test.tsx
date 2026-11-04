@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { fetchFeed } from '../api/feed'
 import { HomePage } from '../pages/HomePage'
+import { readClientSession } from '../session/clientSession'
 import { SWIPE_DECK_PAGE_SIZE, SWIPE_DECK_PREFETCH_THRESHOLD, useSwipeDeck } from './useSwipeDeck'
 import type { FeedItem, FeedResponse } from '../types/feed'
 
@@ -30,6 +31,7 @@ function makeRecipe (id: number, name?: string): FeedItem {
 
 describe('useSwipeDeck', () => {
   beforeEach(() => {
+    sessionStorage.clear()
     fetchFeedMock.mockReset()
   })
 
@@ -55,12 +57,47 @@ describe('useSwipeDeck', () => {
 
     expect(result.current.currentRecipe?.id).toBe(2)
     expect(result.current.engagements).toEqual([{ recipeId: 1, action: 'like' }])
+    expect(readClientSession()?.ratings).toEqual([{ recipeId: 1, action: 'like' }])
 
     await act(async () => result.current.handlePass())
     expect(result.current.currentRecipe?.id).toBe(3)
     expect(result.current.engagements).toEqual([
       { recipeId: 1, action: 'like' },
       { recipeId: 2, action: 'pass' }
+    ])
+    expect(readClientSession()?.ratings).toEqual([
+      { recipeId: 1, action: 'like' },
+      { recipeId: 2, action: 'pass' }
+    ])
+  })
+
+  it('excludes stored ratings from the first feed page', async () => {
+    sessionStorage.setItem(
+      'dish-list.session',
+      JSON.stringify({
+        id: 'session-1',
+        ratings: [
+          { recipeId: 4, action: 'like' },
+          { recipeId: 5, action: 'pass' }
+        ]
+      })
+    )
+    fetchFeedMock.mockResolvedValueOnce({
+      items: [makeRecipe(6)],
+      remaining: 0
+    })
+
+    const { result } = renderHook(() => useSwipeDeck())
+    await waitFor(() => expect(result.current.currentRecipe?.id).toBe(6))
+
+    expect(fetchFeedMock).toHaveBeenCalledWith({
+      limit: SWIPE_DECK_PAGE_SIZE,
+      excludeIds: [4, 5],
+      signal: expect.any(AbortSignal)
+    })
+    expect(result.current.engagements).toEqual([
+      { recipeId: 4, action: 'like' },
+      { recipeId: 5, action: 'pass' }
     ])
   })
 
@@ -155,6 +192,7 @@ describe('useSwipeDeck', () => {
 
 describe('HomePage swipe deck', () => {
   beforeEach(() => {
+    sessionStorage.clear()
     fetchFeedMock.mockReset()
   })
 

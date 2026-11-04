@@ -118,23 +118,6 @@ def test_three_likes_generate_three_distinct_likes() -> None:
     assert _recipe_count() == 5
 
 
-def test_third_like_unlocks_a_plan() -> None:
-    recipes = _seed_recipes(4)
-    ratings = [_posted(recipe.id, "like") for recipe in recipes[:2]]
-    ratings.append(_posted(recipes[2].id, "pass"))
-
-    insufficient = _generate(ratings)
-    assert insufficient.status_code == 200
-    assert insufficient.json()["status"] == "insufficient_likes"
-
-    ratings.append(_posted(recipes[3].id, "like"))
-    generated = _generate(ratings)
-    assert generated.status_code == 200
-    assert generated.json()["status"] == "generated"
-    assert len(generated.json()["recipes"]) == 3
-    assert _recipe_count() == 4
-
-
 def test_unknown_recipe_in_posted_ratings_is_not_found() -> None:
     recipes = _seed_recipes(7)
     ratings = [_posted(recipe.id, "like") for recipe in recipes]

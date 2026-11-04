@@ -4,7 +4,9 @@ import { Link } from 'react-router-dom'
 import { generateMealPlan } from '../api/mealPlan'
 import {
   canGenerateMealPlan,
-  readClientSession
+  findValidStoredMealPlan,
+  readClientSession,
+  writeStoredMealPlan
 } from '../session/clientSession'
 import type { FeedItem } from '../types/feed'
 import type { MealPlanRecipe } from '../types/mealPlan'
@@ -172,6 +174,14 @@ export function MealPlanPage (): ReactElement {
       if (signal?.aborted) return
 
       if (result.status === 'generated') {
+        const session = readClientSession()
+        if (session != null) {
+          writeStoredMealPlan({
+            sessionId: session.id,
+            ratings: session.ratings,
+            recipes: result.recipes
+          })
+        }
         setRecipes(result.recipes)
         setPhase('ready')
         return
@@ -187,6 +197,19 @@ export function MealPlanPage (): ReactElement {
   }, [])
 
   useEffect(() => {
+    const ratings = readClientSession()?.ratings ?? []
+    if (!canGenerateMealPlan(ratings)) {
+      setPhase('not_ready')
+      return
+    }
+
+    const cached = findValidStoredMealPlan()
+    if (cached != null) {
+      setRecipes(cached.recipes)
+      setPhase('ready')
+      return
+    }
+
     const controller = new AbortController()
     void runGenerate(controller.signal)
     return () => {

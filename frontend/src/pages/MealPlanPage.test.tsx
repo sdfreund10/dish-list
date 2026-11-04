@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 
 import { generateMealPlan } from '../api/mealPlan'
+import { MEAL_PLAN_STORAGE_KEY } from '../session/clientSession'
 import { HomePage } from './HomePage'
 import { MealPlanPage } from './MealPlanPage'
 import type { MealPlanRecipe } from '../types/mealPlan'
@@ -49,6 +50,7 @@ function renderPlanRoute (initialPath = '/plan'): void {
 describe('MealPlanPage', () => {
   beforeEach(() => {
     sessionStorage.clear()
+    localStorage.clear()
     generateMealPlanMock.mockReset()
   })
 
@@ -119,6 +121,41 @@ describe('MealPlanPage', () => {
       ],
       expect.any(AbortSignal)
     )
+    expect(localStorage.getItem(MEAL_PLAN_STORAGE_KEY)).toContain('Monday')
+  })
+
+  it('renders a stored meal plan without calling the API', async () => {
+    const ratings = [
+      { recipeId: 1, action: 'like' as const },
+      { recipeId: 2, action: 'like' as const },
+      { recipeId: 3, action: 'like' as const }
+    ]
+    sessionStorage.setItem(
+      'dish-list.session',
+      JSON.stringify({
+        id: 'session-1',
+        ratings
+      })
+    )
+    localStorage.setItem(
+      MEAL_PLAN_STORAGE_KEY,
+      JSON.stringify({
+        sessionId: 'session-1',
+        ratings,
+        recipes: [
+          makePlanRecipe(21, 'Cached one'),
+          makePlanRecipe(22, 'Cached two'),
+          makePlanRecipe(23, 'Cached three')
+        ]
+      })
+    )
+
+    renderPlanRoute()
+
+    expect(await screen.findByRole('heading', { name: 'Cached one' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Cached two' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Cached three' })).toBeTruthy()
+    expect(generateMealPlanMock).not.toHaveBeenCalled()
   })
 
   it('shows error when the API returns insufficient_likes', async () => {
@@ -203,6 +240,7 @@ describe('MealPlanPage', () => {
 describe('HomePage generate CTA', () => {
   beforeEach(() => {
     sessionStorage.clear()
+    localStorage.clear()
     generateMealPlanMock.mockReset()
   })
 

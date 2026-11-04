@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router-dom'
 
 import { fetchFeed } from '../api/feed'
 import { HomePage } from '../pages/HomePage'
-import { readClientSession } from '../session/clientSession'
+import { MEAL_PLAN_STORAGE_KEY, readClientSession } from '../session/clientSession'
 import { SWIPE_DECK_PAGE_SIZE, SWIPE_DECK_PREFETCH_THRESHOLD, useSwipeDeck } from './useSwipeDeck'
 import type { FeedItem, FeedResponse } from '../types/feed'
 
@@ -194,6 +194,7 @@ describe('useSwipeDeck', () => {
 describe('HomePage swipe deck', () => {
   beforeEach(() => {
     sessionStorage.clear()
+    localStorage.clear()
     fetchFeedMock.mockReset()
   })
 
@@ -299,5 +300,79 @@ describe('HomePage swipe deck', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Like Four' }))
     expect(screen.getByRole('button', { name: 'Generate meal plan' })).toBeTruthy()
     expect(screen.getByText(/seen all available recipes/i)).toBeTruthy()
+  })
+
+  it('shows View meal plan when a stored plan matches the session', async () => {
+    const ratings = [
+      { recipeId: 1, action: 'like' as const },
+      { recipeId: 2, action: 'like' as const },
+      { recipeId: 3, action: 'like' as const }
+    ]
+    sessionStorage.setItem(
+      'dish-list.session',
+      JSON.stringify({ id: 'session-1', ratings })
+    )
+    localStorage.setItem(
+      MEAL_PLAN_STORAGE_KEY,
+      JSON.stringify({
+        sessionId: 'session-1',
+        ratings,
+        recipes: [
+          {
+            id: 10,
+            name: 'Stored',
+            description: null,
+            image: null,
+            total_min: null,
+            rating: null,
+            rating_count: null,
+            categories: [],
+            keywords: [],
+            url: 'https://example.com/10',
+            author: null
+          },
+          {
+            id: 11,
+            name: 'Stored two',
+            description: null,
+            image: null,
+            total_min: null,
+            rating: null,
+            rating_count: null,
+            categories: [],
+            keywords: [],
+            url: 'https://example.com/11',
+            author: null
+          },
+          {
+            id: 12,
+            name: 'Stored three',
+            description: null,
+            image: null,
+            total_min: null,
+            rating: null,
+            rating_count: null,
+            categories: [],
+            keywords: [],
+            url: 'https://example.com/12',
+            author: null
+          }
+        ]
+      })
+    )
+    fetchFeedMock.mockResolvedValueOnce({
+      items: [makeRecipe(4, 'Next')],
+      remaining: 0
+    })
+
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
+
+    await screen.findByRole('heading', { name: 'Next' })
+    expect(screen.getByRole('button', { name: 'View meal plan' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
   })
 })

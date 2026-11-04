@@ -1,12 +1,13 @@
 import type { ReactElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { AppTopBar } from '../components/AppTopBar'
 import { RecipeSwipeCard } from '../components/RecipeSwipeCard'
 import { useSwipeDeck } from '../hooks/useSwipeDeck'
 import {
   canGenerateMealPlan,
-  findValidStoredMealPlan,
-  readClientSession
+  readClientSession,
+  viewPlanButtonLabel
 } from '../session/clientSession'
 
 export function HomePage (): ReactElement {
@@ -18,39 +19,31 @@ export function HomePage (): ReactElement {
     handlePass
   } = useSwipeDeck()
 
-  const unlocked = canGenerateMealPlan(readClientSession()?.ratings ?? [])
-  const planButtonLabel =
-    findValidStoredMealPlan() != null ? 'View meal plan' : 'Generate meal plan'
+  const ratings = readClientSession()?.ratings ?? []
+  const unlocked = canGenerateMealPlan(ratings)
+  const planButtonLabel = viewPlanButtonLabel(ratings)
 
   return (
     <section className='home'>
-      {unlocked && (
-        <div className='generate-plan'>
+      <AppTopBar
+        action={
           <button
             type='button'
-            className='generate-plan__button'
+            className={
+              unlocked
+                ? 'header-cta'
+                : 'header-cta header-cta--disabled'
+            }
+            disabled={!unlocked}
+            aria-disabled={!unlocked}
             onClick={() => {
               navigate('/plan')
             }}
           >
             {planButtonLabel}
-            <svg
-              className='generate-plan__chevron'
-              viewBox='0 0 24 24'
-              aria-hidden='true'
-            >
-              <path
-                d='M9 5.5 15.5 12 9 18.5'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2.25'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-              />
-            </svg>
           </button>
-        </div>
-      )}
+        }
+      />
 
       {status === 'loading' && (
         <p className='home-status' role='status'>Loading recipes…</p>

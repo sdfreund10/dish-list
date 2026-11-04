@@ -270,7 +270,7 @@ describe('HomePage swipe deck', () => {
     })
   })
 
-  it('shows Generate meal plan after three likes and keeps the deck open', async () => {
+  it('shows View plan progress in the header and enables it at three likes', async () => {
     fetchFeedMock.mockResolvedValueOnce({
       items: [
         makeRecipe(1, 'One'),
@@ -287,22 +287,27 @@ describe('HomePage swipe deck', () => {
       </MemoryRouter>
     )
     await screen.findByRole('heading', { name: 'One' })
-    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
+
+    const planButton = screen.getByRole('button', { name: 'View plan (0/3)' })
+    expect(planButton.hasAttribute('disabled')).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: 'Like One' }))
+    expect(screen.getByRole('button', { name: 'View plan (1/3)' }).hasAttribute('disabled')).toBe(true)
+
     fireEvent.click(screen.getByRole('button', { name: 'Like Two' }))
-    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'View plan (2/3)' }).hasAttribute('disabled')).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: 'Like Three' }))
-    expect(screen.getByRole('button', { name: 'Generate meal plan' })).toBeTruthy()
+    const unlockedButton = screen.getByRole('button', { name: 'View plan (3)' })
+    expect(unlockedButton.hasAttribute('disabled')).toBe(false)
     expect(screen.getByRole('heading', { name: 'Four' })).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Like Four' }))
-    expect(screen.getByRole('button', { name: 'Generate meal plan' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View plan (4)' }).hasAttribute('disabled')).toBe(false)
     expect(screen.getByText(/seen all available recipes/i)).toBeTruthy()
   })
 
-  it('shows View meal plan when a stored plan matches the session', async () => {
+  it('shows View plan (3) when a stored plan matches the session', async () => {
     const ratings = [
       { recipeId: 1, action: 'like' as const },
       { recipeId: 2, action: 'like' as const },
@@ -372,7 +377,7 @@ describe('HomePage swipe deck', () => {
     )
 
     await screen.findByRole('heading', { name: 'Next' })
-    expect(screen.getByRole('button', { name: 'View meal plan' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'View plan (3)' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View plan (3)' }).hasAttribute('disabled')).toBe(false)
   })
 })

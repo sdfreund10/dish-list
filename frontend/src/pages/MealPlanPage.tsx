@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useState, type ReactElement, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { generateMealPlan } from '../api/mealPlan'
+import { AppTopBar } from '../components/AppTopBar'
 import {
   canGenerateMealPlan,
   findValidStoredMealPlan,
@@ -154,6 +155,27 @@ function PlanRecipeCard ({ recipe }: { recipe: MealPlanRecipe }): ReactElement {
   )
 }
 
+function KeepBrowsingLink (): ReactElement {
+  return (
+    <Link className='header-cta' to='/'>
+      Keep Browsing
+    </Link>
+  )
+}
+
+function MealPlanShell ({
+  children
+}: {
+  children: ReactNode
+}): ReactElement {
+  return (
+    <section className='meal-plan'>
+      <AppTopBar action={<KeepBrowsingLink />} />
+      {children}
+    </section>
+  )
+}
+
 export function MealPlanPage (): ReactElement {
   const [phase, setPhase] = useState<PagePhase>('loading')
   const [recipes, setRecipes] = useState<MealPlanRecipe[]>([])
@@ -219,26 +241,25 @@ export function MealPlanPage (): ReactElement {
 
   if (phase === 'not_ready') {
     return (
-      <section className='meal-plan'>
+      <MealPlanShell>
         <p className='meal-plan-status' role='status'>
           Like at least three recipes first.
         </p>
-        <Link className='meal-plan-link' to='/'>Back to swiping</Link>
-      </section>
+      </MealPlanShell>
     )
   }
 
   if (phase === 'loading') {
     return (
-      <section className='meal-plan'>
+      <MealPlanShell>
         <p className='meal-plan-status' role='status'>Building your plan…</p>
-      </section>
+      </MealPlanShell>
     )
   }
 
   if (phase === 'error') {
     return (
-      <section className='meal-plan'>
+      <MealPlanShell>
         <p className='meal-plan-status meal-plan-status--error' role='alert'>
           {errorMessage ?? 'Something went wrong.'}
         </p>
@@ -252,14 +273,13 @@ export function MealPlanPage (): ReactElement {
           >
             Try again
           </button>
-          <Link className='meal-plan-link' to='/'>Back to swiping</Link>
         </div>
-      </section>
+      </MealPlanShell>
     )
   }
 
   return (
-    <section className='meal-plan'>
+    <MealPlanShell>
       <h1 className='meal-plan-heading'>Your meal plan</h1>
       <ul className='meal-plan-list'>
         {recipes.map(recipe => (
@@ -268,7 +288,6 @@ export function MealPlanPage (): ReactElement {
           </li>
         ))}
       </ul>
-      <Link className='meal-plan-link' to='/'>Back to swiping</Link>
-    </section>
+    </MealPlanShell>
   )
 }

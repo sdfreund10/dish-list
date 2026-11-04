@@ -74,7 +74,7 @@ describe('MealPlanPage', () => {
 
     expect(await screen.findByText(/like at least three recipes/i)).toBeTruthy()
     expect(generateMealPlanMock).not.toHaveBeenCalled()
-    expect(screen.getByRole('link', { name: 'Back to swiping' }).getAttribute('href')).toBe('/')
+    expect(screen.getByRole('link', { name: 'Keep Browsing' }).getAttribute('href')).toBe('/')
   })
 
   it('renders three recipes with source links on success', async () => {
@@ -181,7 +181,7 @@ describe('MealPlanPage', () => {
 
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toMatch(/not enough likes/i)
-    expect(screen.getByRole('link', { name: 'Back to swiping' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Keep Browsing' })).toBeTruthy()
   })
 
   it('shows error when generateMealPlan throws', async () => {
@@ -248,7 +248,7 @@ describe('HomePage generate CTA', () => {
     cleanup()
   })
 
-  it('navigates to /plan when Generate meal plan is clicked', async () => {
+  it('navigates to /plan when View plan is clicked', async () => {
     const { fetchFeed } = await import('../api/feed')
     const fetchFeedMock = vi.mocked(fetchFeed)
     fetchFeedMock.mockResolvedValueOnce({
@@ -287,7 +287,7 @@ describe('HomePage generate CTA', () => {
       </MemoryRouter>
     )
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Generate meal plan' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'View plan (3)' }))
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Your meal plan' })).toBeTruthy()

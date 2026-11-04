@@ -113,9 +113,20 @@ export function ratedRecipeIds (session: ClientSession = ensureClientSession()):
 
 export const MEAL_PLAN_LIKE_THRESHOLD = 3
 
+export function countLikes (ratings: ClientRating[]): number {
+  return ratings.filter(rating => rating.action === 'like').length
+}
+
 export function canGenerateMealPlan (ratings: ClientRating[]): boolean {
-  const likeCount = ratings.filter(rating => rating.action === 'like').length
-  return likeCount >= MEAL_PLAN_LIKE_THRESHOLD
+  return countLikes(ratings) >= MEAL_PLAN_LIKE_THRESHOLD
+}
+
+export function viewPlanButtonLabel (ratings: ClientRating[]): string {
+  const likes = countLikes(ratings)
+  if (canGenerateMealPlan(ratings)) {
+    return `View plan (${likes})`
+  }
+  return `View plan (${likes}/${MEAL_PLAN_LIKE_THRESHOLD})`
 }
 
 function writeClientSession (session: ClientSession): void {

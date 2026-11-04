@@ -13,6 +13,7 @@ import {
   ratedRecipeIds,
   readClientSession,
   readStoredMealPlan,
+  viewPlanButtonLabel,
   writeStoredMealPlan
 } from './clientSession'
 import type { MealPlanRecipe } from '../types/mealPlan'
@@ -101,6 +102,19 @@ describe('clientSession', () => {
       { recipeId: 4, action: 'pass' },
       { recipeId: 5, action: 'like' }
     ])).toBe(true)
+  })
+
+  it('labels the view plan button with like progress', () => {
+    expect(viewPlanButtonLabel([])).toBe('View plan (0/3)')
+    expect(viewPlanButtonLabel([
+      { recipeId: 1, action: 'like' },
+      { recipeId: 2, action: 'pass' }
+    ])).toBe('View plan (1/3)')
+    expect(viewPlanButtonLabel([
+      { recipeId: 1, action: 'like' },
+      { recipeId: 2, action: 'like' },
+      { recipeId: 3, action: 'like' }
+    ])).toBe('View plan (3)')
   })
 
   it('stores and reuses a meal plan when ratings match the session', () => {

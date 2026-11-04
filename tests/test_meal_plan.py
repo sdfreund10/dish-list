@@ -78,21 +78,26 @@ def _recipe_count() -> int:
         db.close()
 
 
-def test_six_likes_and_nine_ratings_stay_locked() -> None:
-    recipes = _seed_recipes(9)
-    ratings = [_posted(recipe.id, "like") for recipe in recipes[:6]]
-    ratings.extend(_posted(recipe.id, "pass") for recipe in recipes[6:])
+def test_fewer_than_three_likes_is_insufficient() -> None:
+    recipes = _seed_recipes(5)
+    ratings = [_posted(recipe.id, "like") for recipe in recipes[:2]]
+    ratings.extend(_posted(recipe.id, "pass") for recipe in recipes[2:])
 
-    locked = _generate(ratings)
-    assert locked.status_code == 403
-    assert locked.json()["detail"] == "not_eligible"
-    assert _recipe_count() == 9
+    insufficient = _generate(ratings)
+    assert insufficient.status_code == 200
+    assert insufficient.json() == {
+        "status": "insufficient_likes",
+        "recipes": [],
+        "like_count": 2,
+        "rating_count": 5,
+    }
+    assert _recipe_count() == 5
 
 
-def test_seven_likes_generate_three_distinct_likes() -> None:
-    recipes = _seed_recipes(9)
-    liked = recipes[:7]
-    passed = recipes[7:]
+def test_three_likes_generate_three_distinct_likes() -> None:
+    recipes = _seed_recipes(5)
+    liked = recipes[:3]
+    passed = recipes[3:]
     ratings = [_posted(recipe.id, "like") for recipe in liked]
     ratings.extend(_posted(recipe.id, "pass") for recipe in passed)
 
@@ -102,38 +107,32 @@ def test_seven_likes_generate_three_distinct_likes() -> None:
     liked_ids = {recipe.id for recipe in liked}
     selected_ids = [recipe["id"] for recipe in body["recipes"]]
     assert body["status"] == "generated"
-    assert body["like_count"] == 7
-    assert body["rating_count"] == 9
+    assert body["like_count"] == 3
+    assert body["rating_count"] == 5
     assert len(selected_ids) == 3
     assert len(set(selected_ids)) == 3
-    assert set(selected_ids) <= liked_ids
+    assert set(selected_ids) == liked_ids
     assert set(selected_ids).isdisjoint({recipe.id for recipe in passed})
     assert body["recipes"][0]["url"].startswith("https://example.com/recipes/")
     assert body["recipes"][0]["name"].startswith("Plan Recipe")
-    assert _recipe_count() == 9
+    assert _recipe_count() == 5
 
 
-def test_ten_ratings_need_three_likes_before_a_plan() -> None:
-    recipes = _seed_recipes(12)
+def test_third_like_unlocks_a_plan() -> None:
+    recipes = _seed_recipes(4)
     ratings = [_posted(recipe.id, "like") for recipe in recipes[:2]]
-    ratings.extend(_posted(recipe.id, "pass") for recipe in recipes[2:10])
+    ratings.append(_posted(recipes[2].id, "pass"))
 
     insufficient = _generate(ratings)
     assert insufficient.status_code == 200
-    assert insufficient.json() == {
-        "status": "insufficient_likes",
-        "recipes": [],
-        "like_count": 2,
-        "rating_count": 10,
-    }
-    assert _recipe_count() == 12
+    assert insufficient.json()["status"] == "insufficient_likes"
 
-    ratings.append(_posted(recipes[10].id, "like"))
+    ratings.append(_posted(recipes[3].id, "like"))
     generated = _generate(ratings)
     assert generated.status_code == 200
     assert generated.json()["status"] == "generated"
     assert len(generated.json()["recipes"]) == 3
-    assert _recipe_count() == 12
+    assert _recipe_count() == 4
 
 
 def test_unknown_recipe_in_posted_ratings_is_not_found() -> None:

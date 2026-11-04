@@ -5,11 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.schemas.meal_plan import MealPlanRequest, MealPlanResponse
-from app.services.meal_plan import (
-    NotEligible,
-    RecipeNotFound,
-    generate_meal_plan,
-)
+from app.services.meal_plan import RecipeNotFound, generate_meal_plan
 
 router = APIRouter()
 
@@ -23,5 +19,3 @@ def post_meal_plan(
         return generate_meal_plan(db, body.ratings)
     except RecipeNotFound as error:
         raise HTTPException(status_code=404, detail="recipe_not_found") from error
-    except NotEligible as error:
-        raise HTTPException(status_code=403, detail="not_eligible") from error

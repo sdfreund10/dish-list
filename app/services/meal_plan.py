@@ -1,4 +1,4 @@
-"""Unlock eligibility and random meal selection from posted ratings."""
+"""Random meal selection from posted ratings."""
 
 import random
 
@@ -12,21 +12,11 @@ from app.schemas.meal_plan import (
     PostedRating,
 )
 
-UNLOCK_RATING_COUNT = 10
-UNLOCK_LIKE_COUNT = 7
 MEAL_PLAN_SIZE = 3
 
 
 class RecipeNotFound(Exception):
     pass
-
-
-class NotEligible(Exception):
-    pass
-
-
-def is_eligible(rating_count: int, like_count: int) -> bool:
-    return rating_count >= UNLOCK_RATING_COUNT or like_count >= UNLOCK_LIKE_COUNT
 
 
 def generate_meal_plan(
@@ -42,8 +32,6 @@ def generate_meal_plan(
     ]
     rating_count = len(unique)
     like_count = len(liked_recipe_ids)
-    if not is_eligible(rating_count, like_count):
-        raise NotEligible
 
     liked = _liked_recipes(db, liked_recipe_ids)
     if len(liked) < MEAL_PLAN_SIZE:

@@ -255,4 +255,32 @@ describe('HomePage swipe deck', () => {
       expect(screen.getByText(/seen all available recipes/i)).toBeTruthy()
     })
   })
+
+  it('shows Generate meal plan after three likes and keeps the deck open', async () => {
+    fetchFeedMock.mockResolvedValueOnce({
+      items: [
+        makeRecipe(1, 'One'),
+        makeRecipe(2, 'Two'),
+        makeRecipe(3, 'Three'),
+        makeRecipe(4, 'Four')
+      ],
+      remaining: 0
+    })
+
+    render(<HomePage />)
+    await screen.findByRole('heading', { name: 'One' })
+    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Like One' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Like Two' }))
+    expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Like Three' }))
+    expect(screen.getByRole('button', { name: 'Generate meal plan' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Four' })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Like Four' }))
+    expect(screen.getByRole('button', { name: 'Generate meal plan' })).toBeTruthy()
+    expect(screen.getByText(/seen all available recipes/i)).toBeTruthy()
+  })
 })

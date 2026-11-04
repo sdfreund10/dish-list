@@ -2,6 +2,10 @@ import type { ReactElement } from 'react'
 
 import { RecipeSwipeCard } from '../components/RecipeSwipeCard'
 import { useSwipeDeck } from '../hooks/useSwipeDeck'
+import {
+  canGenerateMealPlan,
+  readClientSession
+} from '../session/clientSession'
 
 export function HomePage (): ReactElement {
   const {
@@ -11,8 +15,35 @@ export function HomePage (): ReactElement {
     handlePass
   } = useSwipeDeck()
 
+  const unlocked = canGenerateMealPlan(readClientSession()?.ratings ?? [])
+
   return (
     <section className='home'>
+      {unlocked && (
+        <div className='generate-plan'>
+          <button
+            type='button'
+            className='generate-plan__button'
+          >
+            Generate meal plan
+            <svg
+              className='generate-plan__chevron'
+              viewBox='0 0 24 24'
+              aria-hidden='true'
+            >
+              <path
+                d='M9 5.5 15.5 12 9 18.5'
+                fill='none'
+                stroke='currentColor'
+                strokeWidth='2.25'
+                strokeLinecap='round'
+                strokeLinejoin='round'
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {status === 'loading' && (
         <p className='home-status' role='status'>Loading recipes…</p>
       )}

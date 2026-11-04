@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   SESSION_STORAGE_KEY,
   appendClientRating,
+  canGenerateMealPlan,
   ensureClientSession,
   ratedRecipeIds,
   readClientSession
@@ -55,5 +56,27 @@ describe('clientSession', () => {
       { recipeId: 10, action: 'like' },
       { recipeId: 11, action: 'pass' }
     ])
+  })
+
+  it('unlocks meal-plan generation at three likes', () => {
+    expect(canGenerateMealPlan([
+      { recipeId: 1, action: 'like' },
+      { recipeId: 2, action: 'like' },
+      { recipeId: 3, action: 'pass' }
+    ])).toBe(false)
+
+    expect(canGenerateMealPlan([
+      { recipeId: 1, action: 'like' },
+      { recipeId: 2, action: 'like' },
+      { recipeId: 3, action: 'like' }
+    ])).toBe(true)
+
+    expect(canGenerateMealPlan([
+      { recipeId: 1, action: 'like' },
+      { recipeId: 2, action: 'pass' },
+      { recipeId: 3, action: 'like' },
+      { recipeId: 4, action: 'pass' },
+      { recipeId: 5, action: 'like' }
+    ])).toBe(true)
   })
 })

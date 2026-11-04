@@ -55,6 +55,13 @@ export function ratedRecipeIds (session: ClientSession = ensureClientSession()):
   return session.ratings.map(rating => rating.recipeId)
 }
 
+export const MEAL_PLAN_LIKE_THRESHOLD = 3
+
+export function canGenerateMealPlan (ratings: ClientRating[]): boolean {
+  const likeCount = ratings.filter(rating => rating.action === 'like').length
+  return likeCount >= MEAL_PLAN_LIKE_THRESHOLD
+}
+
 function writeClientSession (session: ClientSession): void {
   sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
 }

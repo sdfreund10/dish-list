@@ -60,6 +60,58 @@ body {
   min-height: 0;
 }
 
+.generate-plan {
+  flex: none;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto 0.75rem;
+}
+
+.generate-plan__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid #2f6b4f;
+  border-radius: 0.75rem;
+  background: #fffdf9;
+  color: #2f6b4f;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.generate-plan__chevron {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: none;
+  transition: transform 160ms ease;
+}
+
+.generate-plan__button:focus-visible {
+  outline: 2px solid #2f6b4f;
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .generate-plan__button:hover {
+    background: #e7f2eb;
+  }
+
+  .generate-plan__button:hover .generate-plan__chevron {
+    transform: translateX(0.2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .generate-plan__chevron {
+    transition: none;
+  }
+}
+
 .home-status {
   margin: 1rem 0 0;
   padding: 0.75rem 1rem;

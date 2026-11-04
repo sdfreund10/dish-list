@@ -2,6 +2,7 @@
 
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 import { fetchFeed } from '../api/feed'
 import { HomePage } from '../pages/HomePage'
@@ -206,7 +207,11 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
     const passButton = await screen.findByRole('button', { name: 'Pass Recipe 1' })
     passButton.focus()
     fireEvent.click(passButton, { detail: 1 })
@@ -226,7 +231,11 @@ describe('HomePage swipe deck', () => {
     const next = { ...makeRecipe(2), image: 'https://example.com/next.jpg' }
     fetchFeedMock.mockResolvedValueOnce({ items: [first, next], remaining: 0 })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
     fireEvent.error(await screen.findByAltText(''))
     expect(screen.getByText('No photo')).toBeTruthy()
 
@@ -243,7 +252,11 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: 'Solo Stew' })).toBeTruthy()
@@ -267,7 +280,11 @@ describe('HomePage swipe deck', () => {
       remaining: 0
     })
 
-    render(<HomePage />)
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    )
     await screen.findByRole('heading', { name: 'One' })
     expect(screen.queryByRole('button', { name: 'Generate meal plan' })).toBeNull()
 

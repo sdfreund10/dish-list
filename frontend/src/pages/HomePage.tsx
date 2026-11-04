@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { RecipeSwipeCard } from '../components/RecipeSwipeCard'
 import { useSwipeDeck } from '../hooks/useSwipeDeck'
@@ -8,6 +9,7 @@ import {
 } from '../session/clientSession'
 
 export function HomePage (): ReactElement {
+  const navigate = useNavigate()
   const {
     status,
     currentRecipe,
@@ -24,6 +26,9 @@ export function HomePage (): ReactElement {
           <button
             type='button'
             className='generate-plan__button'
+            onClick={() => {
+              navigate('/plan')
+            }}
           >
             Generate meal plan
             <svg
